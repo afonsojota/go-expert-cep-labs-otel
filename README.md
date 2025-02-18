@@ -39,3 +39,7 @@ Mensagem: can not find zipcode
 - Sistema A rodará na porta 8080
 - Sistema B rodará na porta 8081
 - Para ver o rastreamento ir no navegador e digital: http://localhost:9411
+
+    ```sh
+    curl -X POST http://localhost:8080/zipcode -d '{"cep":"29902555"}' -H "Content-Type: application/json"
+    ```
