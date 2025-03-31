@@ -49,7 +49,7 @@ func handleZipcodeRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchWeather(cep string) ([]byte, error) {
-	resp, err := http.Get("http://localhost:8081/weather?cep=" + cep)
+	resp, err := http.Get("http://service-b:8081/weather?cep=" + cep)
 	if err != nil {
 		return nil, err
 	}
