@@ -78,7 +78,8 @@ func fetchCityFromCEP(cep string) (string, error) {
 // fetchTemperature busca a temperatura atual de uma cidade usando a API WeatherAPI.
 func fetchTemperature(city string) (WeatherResponse, error) {
 	// Monta a URL da API WeatherAPI
-	url := fmt.Sprintf("http://api.weatherapi.com/v1/current.json?key=%s&q=%s", "b2d1b00af1124f7fb2c173842251802", city)
+	encodedCity := url.QueryEscape(city)
+	url := fmt.Sprintf("http://api.weatherapi.com/v1/current.json?key=%s&q=%s", "b2d1b00af1124f7fb2c173842251802", encodedCity)
 
 	// Faz a requisição HTTP
 	resp, err := http.Get(url)
