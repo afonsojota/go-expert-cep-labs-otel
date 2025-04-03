@@ -54,7 +54,7 @@ type WeatherResponse struct {
 func fetchCityFromCEP(cep string) (string, error) {
 	resp, err := http.Get("https://viacep.com.br/ws/" + cep + "/json/")
 	if err != nil {
-		return "", err
+		return "invalid zipcode", err
 	}
 	defer resp.Body.Close()
 
@@ -64,7 +64,7 @@ func fetchCityFromCEP(cep string) (string, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "error", err
 	}
 
 	var result map[string]interface{}
@@ -135,7 +135,7 @@ func handleWeatherRequest(w http.ResponseWriter, r *http.Request) {
 
 	cep := r.URL.Query().Get("cep")
 	if len(cep) != 8 {
-		http.Error(w, "invalid zipcode", http.StatusUnprocessableEntity)
+		http.Error(w, "error: invalid zipcode", http.StatusBadRequest)
 		return
 	}
 
