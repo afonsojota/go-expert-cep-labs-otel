@@ -24,7 +24,6 @@ func validateZipcode(cep string) bool {
 }
 
 func handleZipcodeRequest(w http.ResponseWriter, r *http.Request) {
-
 	var req ZipcodeRequest
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -33,13 +32,13 @@ func handleZipcodeRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.Unmarshal(body, &req)
 	if err != nil || !validateZipcode(req.CEP) {
-		http.Error(w, "invalid zipcode", http.StatusUnprocessableEntity)
+		http.Error(w, "Invalid zipcode format", http.StatusUnprocessableEntity)
 		return
 	}
 
-	resp, err := fetchWeather(req.CEP)
+	resp, statusCode, err := fetchWeather(req.CEP)
 	if err != nil {
-		http.Error(w, "error communicating with service B", http.StatusInternalServerError)
+		http.Error(w, err.Error(), statusCode)
 		return
 	}
 
@@ -48,18 +47,23 @@ func handleZipcodeRequest(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func fetchWeather(cep string) ([]byte, error) {
+func fetchWeather(cep string) ([]byte, int, error) {
 	resp, err := http.Get("http://service-b:8081/weather?cep=" + cep)
 	if err != nil {
-		return nil, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("failed to communicate with service B: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch temperature, status: %d", resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("failed to read response from service B: %v", err)
 	}
 
-	return io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, resp.StatusCode, fmt.Errorf("%s", string(body))
+	}
+
+	return body, http.StatusOK, nil
 }
 
 func main() {
