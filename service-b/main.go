@@ -54,17 +54,17 @@ type WeatherResponse struct {
 func fetchCityFromCEP(cep string) (string, error) {
 	resp, err := http.Get("https://viacep.com.br/ws/" + cep + "/json/")
 	if err != nil {
-		return "invalid zipcode", err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("CEP not found")
+		return "", fmt.Errorf("invalid zipcode")
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "error", err
+		return "", err
 	}
 
 	var result map[string]interface{}
@@ -72,7 +72,15 @@ func fetchCityFromCEP(cep string) (string, error) {
 		return "", err
 	}
 
-	city := result["localidade"].(string)
+	if _, ok := result["erro"]; ok {
+		return "", fmt.Errorf("invalid zipcode")
+	}
+
+	city, ok := result["localidade"].(string)
+	if !ok {
+		return "", fmt.Errorf("could not find city for zipcode")
+	}
+
 	return city, nil
 }
 
@@ -134,18 +142,18 @@ func handleWeatherRequest(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 
 	cep := r.URL.Query().Get("cep")
-	if len(cep) != 8 {
-		http.Error(w, "error: invalid zipcode", http.StatusBadRequest)
-		return
-	}
 
 	city, err := fetchCityFromCEP(cep)
 	if err != nil {
-		http.Error(w, "can not find zipcode", http.StatusNotFound)
+		http.Error(w, "error: invalid or non-existent zipcode", http.StatusBadRequest)
 		return
 	}
 
-	response, _ := fetchTemperature(city)
+	response, err := fetchTemperature(city)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error fetching temperature: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
